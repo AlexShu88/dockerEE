@@ -1,0 +1,55 @@
+include Makefile
+
+# Compile with go-crypto-swap if we're on x86_64
+# The default golang image is debian:stretch so we'll just pull the stretch image
+ifeq ("$(ARCH)", "x86_64")
+	ENGINE_GO_IMAGE=mirantiseng/go-crypto-swap:debian-9-go$(GO_VERSION)
+endif
+
+RPMBUILD+=-v "$$SSH_AUTH_SOCK:/ssh_auth_sock" -e SSH_AUTH_SOCK=/ssh_auth_sock
+ENGINE_IMAGE=engine-enterprise-dm
+ENGINE_SCOPE=ee
+
+SPEC_FILES=docker-ee.spec docker-ee-cli.spec
+
+.PHONY: sles-%
+sles-%: ## build sles-12.3 rpm packages
+sles-%: $(SOURCES)
+	$(CHOWN) -R root:root rpmbuild
+	$(BUILD)
+	$(RUN)
+	$(CHOWN) -R $(shell id -u):$(shell id -g) rpmbuild
+
+.PHONY: rhel-7
+rhel-7: DOCKERFILE:=Dockerfile.$(ARCH)
+rhel-7: ## build rhel-7 rpm packages
+rhel-7: $(SOURCES)
+	$(CHOWN) -R root:root rpmbuild
+	$(BUILD)
+	$(RUN)
+	$(CHOWN) -R $(shell id -u):$(shell id -g) rpmbuild
+
+.PHONY: rhel-8
+rhel-8: DOCKERFILE:=Dockerfile.$(ARCH)
+rhel-8: ## build rhel-8 rpm packages
+rhel-8: $(SOURCES)
+	$(CHOWN) -R root:root rpmbuild
+	$(BUILD)
+	$(RUN)
+	$(CHOWN) -R $(shell id -u):$(shell id -g) rpmbuild
+
+.PHONY: oraclelinux-7
+oraclelinux-7: ## build oraclelinux-7 rpm packages
+oraclelinux-7: $(SOURCES)
+	$(CHOWN) -R root:root rpmbuild
+	$(BUILD)
+	$(RUN)
+	$(CHOWN) -R $(shell id -u):$(shell id -g) rpmbuild
+
+.PHONY: amazonlinux-%
+amazonlinux-%: ## build amazonlinux rpm packages
+amazonlinux-%: $(SOURCES)
+	$(CHOWN) -R root:root rpmbuild
+	$(BUILD)
+	$(RUN)
+	$(CHOWN) -R $(shell id -u):$(shell id -g) rpmbuild

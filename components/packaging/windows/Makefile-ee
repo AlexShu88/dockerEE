@@ -1,0 +1,4 @@
+include Makefile
+
+GO_BASE_IMAGE=mirantiseng/go-crypto-swap
+ENGINE_GO_IMAGE=$(GO_BASE_IMAGE):windows-go$(GO_VERSION)

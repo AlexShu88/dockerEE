@@ -1,0 +1,4 @@
+gitSource,gitReference
+docker/app,v0.8.0
+Mirantis/registry-cli,v0.1.0-rc1
+Mirantis/cluster,v1.4.0

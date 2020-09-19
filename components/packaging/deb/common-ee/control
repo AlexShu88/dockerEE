@@ -1,0 +1,69 @@
+Source: docker-ee
+Section: admin
+Priority: optional
+Maintainer: Docker <support@docker.com>
+Build-Depends: bash,
+               bash-completion,
+               libbtrfs-dev | btrfs-tools,
+               ca-certificates,
+               cmake,
+               dh-apparmor,
+               dh-systemd,
+               gcc,
+               git,
+               libc-dev,
+               libdevmapper-dev,
+               libltdl-dev,
+               libseccomp-dev,
+               libseccomp2,
+               libsystemd-dev,
+               libtool,
+               make,
+               pkg-config
+Standards-Version: 3.9.6
+Homepage: https://www.docker.com
+
+Package: docker-ee
+Architecture: linux-any
+Depends: docker-ee-cli, containerd.io, iptables, libseccomp2 (>= 2.3.0), ${shlibs:Depends}
+Recommends: aufs-tools,
+            ca-certificates,
+            cgroupfs-mount | cgroup-lite,
+            git,
+            pigz,
+            xz-utils,
+            libltdl7,
+            ${apparmor:Recommends}
+Conflicts: docker (<< 1.5~), docker.io, lxc-docker, lxc-docker-virtual-package, docker-engine, docker-engine-cs
+Replaces: docker-engine, docker-ce
+Description: Docker: the open-source application container engine
+ Docker is a product for you to build, ship and run any application as a
+ lightweight container
+ .
+ Docker containers are both hardware-agnostic and platform-agnostic. This means
+ they can run anywhere, from your laptop to the largest cloud compute instance and
+ everything in between - and they don't require you to use a particular
+ language, framework or packaging system. That makes them great building blocks
+ for deploying and scaling web apps, databases, and backend services without
+ depending on a particular stack or provider.
+ .
+ Docker EUSA https://www.docker.com/docker-software-end-user-subscription-agreement
+
+Package: docker-ee-cli
+Architecture: linux-any
+Depends: ${shlibs:Depends}
+Conflicts: docker (<< 1.5~), docker.io, lxc-docker, lxc-docker-virtual-package, docker-engine, docker-engine-cs
+Replaces: docker-ee (<< 5:0), docker-ce (<< 5:0), docker-ce-cli
+Breaks: docker-ee (<< 5:0), docker-ce (<< 5:0), docker-ce-cli
+Description: Docker CLI: the open-source application container engine
+ Docker is a product for you to build, ship and run any application as a
+ lightweight container
+ .
+ Docker containers are both hardware-agnostic and platform-agnostic. This means
+ they can run anywhere, from your laptop to the largest cloud compute instance and
+ everything in between - and they don't require you to use a particular
+ language, framework or packaging system. That makes them great building blocks
+ for deploying and scaling web apps, databases, and backend services without
+ depending on a particular stack or provider.
+ .
+ Docker EUSA https://www.docker.com/docker-software-end-user-subscription-agreement

@@ -1,0 +1,7 @@
+#!/bin/sh
+
+set -ex
+
+zypper --no-gpg-checks install -y $(find /v/rpm -name "*.rpm" | grep -v 'debuginfo')
+
+DOCKER_FIPS=log docker ps 2>&1 | grep FIPS

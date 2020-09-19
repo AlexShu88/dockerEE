@@ -1,0 +1,57 @@
+include Makefile
+
+ARCH:=$(shell uname -m)
+TELEMETRY_API_KEY:=MEMutJjWBF0qNOqd6pqTuDPvL07ZbHT1
+export TELEMETRY_API_KEY
+
+clean-win:
+	-$(MAKE) -C windows -f Makefile-ee clean
+
+rpm: DOCKER_BUILD_PKGS:=centos-7
+rpm: ## build rpm packages
+	for p in $(DOCKER_BUILD_PKGS); do \
+		$(MAKE) -C $@ -f Makefile-ee VERSION=$(VERSION) ENGINE_DIR=$(ENGINE_DIR) CLI_DIR=$(CLI_DIR) $${p} || exit 1; \
+		if [ $(uname -m) == 'x86_64' ]; then \
+			$(MAKE) -f Makefile-ee fips-verify-$${p} || exit 1; \
+		fi; \
+	done
+
+deb: DOCKER_BUILD_PKGS:=ubuntu-xenial ubuntu-trusty
+deb: ## build deb packages
+	for p in $(DOCKER_BUILD_PKGS); do \
+		$(MAKE) -C $@ -f Makefile-ee VERSION=$(VERSION) ENGINE_DIR=$(ENGINE_DIR) CLI_DIR=$(CLI_DIR) $${p} || exit 1; \
+		if [ $(uname -m) == 'x86_64' ]; then \
+			$(MAKE) -f Makefile-ee fips-verify-$${p} || exit 1; \
+		fi; \
+	done
+
+win:
+	$(MAKE) -C windows -f Makefile-ee DOCKER_GITCOMMIT=$(DOCKER_GITCOMMIT) VERSION=$(VERSION) TELEMETRY_API_KEY=$(TELEMETRY_API_KEY) ENGINE_DIR=$(CURDIR)/$(ENGINE_DIR) CLI_DIR=$(CURDIR)/$(CLI_DIR) $@
+
+static: DOCKER_BUILD_PKGS:=static-linux cross-win
+static: ## build static-compiled packages
+	for p in $(DOCKER_BUILD_PKGS); do \
+		$(MAKE) -C $@ -f Makefile-ee VERSION=$(VERSION) TELEMETRY_API_KEY=$(TELEMETRY_API_KEY) ENGINE_DIR=$(ENGINE_DIR) CLI_DIR=$(CLI_DIR) $${p} || exit 1; \
+	done
+
+.PHONY: image
+image: DOCKER_BUILD_PKGS:=image-linux
+image: ## build static-compiled packages
+	for p in $(DOCKER_BUILD_PKGS); do \
+		$(MAKE) -C $@ -f Makefile-ee VERSION=$(VERSION) ENGINE_DIR=$(ENGINE_DIR) TELEMETRY_API_KEY=$(TELEMETRY_API_KEY) CLI_DIR=$(CLI_DIR) GO_VERSION=$(GO_VERSION) $${p} || exit 1; \
+	done
+
+fips-verify-ubuntu-%:
+	docker run --rm -v $(CURDIR)/deb/debbuild/ubuntu-$*:/v/deb -v $(CURDIR)/scripts:/v/scripts -w /v ubuntu:$* ./scripts/verify-fips-deb
+
+fips-verify-centos-%:
+	docker run --rm -v $(CURDIR)/rpm/rpmbuild/RPMS/x86_64:/v/rpm -v $(CURDIR)/scripts:/v/scripts -w /v centos:$* ./scripts/verify-fips-rpm
+
+fips-verify-rhel-%:
+	docker run --rm -v $(CURDIR)/rpm/rpmbuild/RPMS/x86_64:/v/rpm -v $(CURDIR)/scripts:/v/scripts -w /v rhel:$* ./scripts/verify-fips-rpm
+
+fips-verify-oraclelinux-%:
+	docker run --rm -v $(CURDIR)/rpm/rpmbuild/RPMS/x86_64:/v/rpm -v $(CURDIR)/scripts:/v/scripts -w /v oraclelinux:$* ./scripts/verify-fips-rpm
+
+fips-verify-sles-%:
+	docker run --rm -v $(CURDIR)/rpm/rpmbuild/RPMS/x86_64:/v/rpm -v $(CURDIR)/scripts:/v/scripts -w /v mirantiseng/sles:$* ./scripts/verify-fips-sles

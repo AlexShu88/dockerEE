@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -ex
+
+dpkg -i /v/deb/docker-ee-*_amd64.deb || true
+apt-get update && apt-get install -y -f
+
+DOCKER_FIPS=log docker ps 2>&1 | grep FIPS

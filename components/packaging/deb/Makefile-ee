@@ -1,0 +1,10 @@
+include Makefile
+
+# Compile with go-crypto-swap if we're on x86_64
+# The default golang image is debian:stretch so we'll just pull the stretch image
+ifeq ("$(ARCH)", "x86_64")
+	ENGINE_GO_IMAGE=mirantiseng/go-crypto-swap:debian-9-go$(GO_VERSION)
+endif
+
+RUN_FLAGS+=-v "$$SSH_AUTH_SOCK:/ssh_auth_sock" -e SSH_AUTH_SOCK=/ssh_auth_sock
+COMMON_FILES=common-ee

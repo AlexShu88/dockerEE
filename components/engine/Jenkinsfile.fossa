@@ -1,0 +1,20 @@
+pipeline {
+    agent any
+    stages {
+        stage("License Scan") {
+            agent {
+                label 'amd64 && ubuntu-1804 && overlay2'
+            }
+
+            steps {
+                withCredentials([
+                    string(credentialsId: 'fossa-api-key', variable: 'FOSSA_API_KEY')
+                ]) {
+                    checkout scm
+                    sh "BRANCH_NAME='${env.BRANCH_NAME}' make fossa-analyze"
+                    sh "make fossa-test"
+                }
+            }
+        }
+    }
+}

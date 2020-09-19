@@ -1,0 +1,34 @@
+pipeline {
+    agent any
+
+    environment {
+        WHITESOURCE_LOG_DIR = "/tmp/whitesource-log"
+    }
+
+    stages {
+        stage("License Scan") {
+            agent {
+                label 'amd64 && ubuntu-1804 && overlay2'
+            }
+
+            steps {
+                checkout scm
+                sh "rm -rf ${WHITESOURCE_LOG_DIR}"
+                withCredentials([
+                    string(credentialsId: 'docker-ee-engine-whitesource-token', variable: 'WHITESOURCE_TOKEN'),
+                    string(credentialsId: 'whitesource-api-key', variable: 'WHITESOURCE_API_KEY'),
+                ]) {
+                    sh "make whitesource-analyze"
+                }
+            }
+
+            post {
+                always {
+                    dir("${WHITESOURCE_LOG_DIR}") {
+                        archiveArtifacts artifacts:  '*/*.log', allowEmptyArchive: true
+                    }
+                }
+            }
+        }
+    }
+}

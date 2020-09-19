@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -e
+
+source "$(dirname "$0")/.common"
+
+GOPATH=$(go env GOPATH)
+REPO=git@github.com:Mirantis/registry-cli
+COMMIT=v0.1.0-rc1
+DEST=${GOPATH}/src/github.com/docker/registry-cli
+
+build() {
+    add_github_ssh_host
+    if [ ! -d "${DEST}" ]; then
+        git clone "${REPO}" "${DEST}"
+    fi
+    (
+        cd "${DEST}"
+        git fetch --all
+        git checkout -q "${COMMIT}"
+        DISABLE_WARN_OUTSIDE_CONTAINER=1 make dynbinary
+    )
+}
+
+install_plugin() {
+    (
+        cd "${DEST}"
+        install_binary build/docker-registry
+    )
+}
+
+build_or_install "$@"

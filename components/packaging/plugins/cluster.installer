@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -e
+
+source "$(dirname "$0")/.common"
+
+GOPATH=$(go env GOPATH)
+REPO=git@github.com:Mirantis/cluster
+COMMIT=v1.4.0
+DEST=${GOPATH}/src/github.com/Mirantis/cluster
+
+build() {
+    add_github_ssh_host
+    if [ ! -d "${DEST}" ]; then
+        git clone "${REPO}" "${DEST}"
+    fi
+    (
+        cd "${DEST}"
+        git fetch --all
+        git checkout -q "${COMMIT}"
+        GOOS=linux go get -u github.com/go-bindata/go-bindata/...
+        make plugin ORG=mirantis
+    )
+}
+
+install_plugin() {
+    (
+        cd "${DEST}"
+        installed=0
+        for binary in docker-cluster docker-cluster.exe; do
+            if [ -f "$binary" ];then
+                install_binary "$binary"
+                installed=1
+            fi
+        done
+        if [ "$installed" = 0 ]; then
+            echo "ERROR: docker-cluster wasn't installed, was it even built?"
+            exit 1
+        fi
+    )
+}
+
+build_or_install "$@"

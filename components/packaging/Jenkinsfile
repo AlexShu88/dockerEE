@@ -1,0 +1,107 @@
+#!groovy
+
+HUB_CREDS = [
+	$class: 'UsernamePasswordMultiBinding',
+	usernameVariable: 'REGISTRY_USERNAME',
+	passwordVariable: 'REGISTRY_PASSWORD',
+	credentialsId: 'dockerbuildbot-index.docker.io',
+]
+
+AWS_CREDS = [
+	$class: 'AmazonWebServicesCredentialsBinding',
+	accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+	secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+	credentialsId: 'ci@docker-qa.aws',
+]
+
+def branch = env.CHANGE_TARGET ?: env.BRANCH_NAME
+
+test_steps = [
+	'deb': { ->
+		stage('Ubuntu Xenial Debian Package') {
+			wrappedNode(label: 'ubuntu && x86_64', cleanWorkspace: true) {
+				checkout scm
+				try {
+					sshagent(['docker-jenkins.github.ssh']) {
+						sh('git clone git@github.com:Mirantis/ee-cli.git')
+						sh("git -C ee-cli checkout $branch")
+						sh('git clone git@github.com:Mirantis/ee-engine.git')
+						sh("git -C ee-engine checkout $branch")
+						sh('make -f Makefile-ee VERSION=0.0.1-dev DOCKER_BUILD_PKGS=ubuntu-xenial ENGINE_DIR=$(pwd)/ee-engine CLI_DIR=$(pwd)/ee-cli deb')
+					}
+				} finally {
+					sh('make ENGINE_DIR=$(pwd)/ee-engine clean-engine')
+				}
+			}
+		}
+	},
+	'rpm': { ->
+		stage('Centos 7 RPM Package') {
+			wrappedNode(label: 'ubuntu && x86_64', cleanWorkspace: true) {
+				checkout scm
+				try {
+				    sshagent(['docker-jenkins.github.ssh']) {
+						sh('git clone git@github.com:Mirantis/ee-cli.git')
+						sh("git -C ee-cli checkout $branch")
+						sh('git clone git@github.com:Mirantis/ee-engine.git')
+						sh("git -C ee-engine checkout $branch")
+						sh('make -f Makefile-ee VERSION=0.0.1-dev DOCKER_BUILD_PKGS=centos-7 ENGINE_DIR=$(pwd)/ee-engine CLI_DIR=$(pwd)/ee-cli rpm')
+					}
+				} finally {
+					sh('make ENGINE_DIR=$(pwd)/ee-engine clean-engine')
+				}
+			}
+		}
+	},
+	'static': { ->
+		stage('Static Linux Binaries') {
+			wrappedNode(label: 'ubuntu && x86_64', cleanWorkspace: true) {
+				checkout scm
+				try {
+					sshagent(['docker-jenkins.github.ssh']) {
+						sh('git clone git@github.com:Mirantis/ee-cli.git')
+						sh("git -C ee-cli checkout $branch")
+						sh('git clone git@github.com:Mirantis/ee-engine.git')
+						sh("git -C ee-engine checkout $branch")
+						sh('make -f Makefile-ee VERSION=0.0.1-dev DOCKER_BUILD_PKGS=static-linux ENGINE_DIR=$(pwd)/ee-engine CLI_DIR=$(pwd)/ee-cli static')
+					}
+				} finally {
+					sh('make ENGINE_DIR=$(pwd)/ee-engine clean-engine')
+				}
+			}
+		}
+	},
+	'windows': { ->
+		stage('Windows binaries') {
+			node('windows-2019') {
+				checkout scm
+				try {
+					bat('make -C windows -f Makefile-ee VERSION=0.0.1-dev clean')
+					bat('rm -rf ee-engine')
+					bat('rm -rf ee-cli')
+					sshagent(['docker-jenkins.github.ssh']) {
+						bat('git clone git@github.com:Mirantis/ee-cli.git')
+						bat("git -C ee-cli checkout $branch")
+						bat('git clone git@github.com:Mirantis/ee-engine.git')
+						bat("git -C ee-engine checkout $branch")
+						withCredentials([HUB_CREDS, AWS_CREDS]) {
+							bat("docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD")
+							bat('make -f Makefile-ee VERSION=9.20.94-testing ENGINE_DIR=ee-engine CLI_DIR=ee-cli win')
+							withAWS(credentials: 'ci@docker-qa.aws', region: 'us-west-2') {
+								s3Upload file: 'windows/docker-9.20.94-testing.zip',
+									bucket: "docker-ci-artifacts",
+									path: "ci.qa.aws.dckr.io/${env.BUILD_TAG}/docker-9.20.94-testing.zip"
+							}
+						}
+					}
+				} finally {
+					bat('make -C windows -f Makefile-ee clean')
+					bat('rm -rf ee-engine')
+					bat('rm -rf ee-cli')
+				}
+			}
+		}
+	},
+]
+
+parallel(test_steps)
